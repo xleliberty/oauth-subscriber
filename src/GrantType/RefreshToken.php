@@ -28,28 +28,6 @@ class RefreshToken extends BaseGrantType implements GrantTypeInterface
             ],
             ['client_id']
         );
-    }
-
-    /**
-     * @param null $refreshToken
-     *
-     * @return AccessToken
-     */
-    public function getToken($refreshToken = null)
-    {
-        $body                  = $this->config->toArray();
-        $body['grant_type']    = 'refresh_token';
-        $body['refresh_token'] = $refreshToken ?: $this->config['refresh_token'];
-
-        $response = $this->client->post(null, ['body' => $body]);
-        $data     = $response->json();
-
-        return new AccessToken(
-            $data['access_token'],
-            $data['expires_in'],
-            $data['token_type'],
-            $data['scope'],
-            $data['refresh_token']
-        );
+        $this->config->set('grant_type', 'refresh_token');
     }
 }

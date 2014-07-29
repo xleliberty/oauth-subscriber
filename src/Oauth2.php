@@ -29,14 +29,14 @@ class Oauth2 implements SubscriberInterface
     private $grantType;
 
     /**
-     * @var string
-     */
-    private $refreshToken;
-
-    /**
      * @var boolean
      */
     private $useRefreshToken;
+
+    /**
+     * @var string
+     */
+    private $refreshToken;
 
 
     /**
@@ -83,7 +83,7 @@ class Oauth2 implements SubscriberInterface
      */
     public function onError(ErrorEvent $event)
     {
-        if (401 == $event->getResponse()->getStatusCode()) {
+        if (null !== $event->getResponse() && 401 == $event->getResponse()->getStatusCode()) {
             $request = $event->getRequest();
             if (!$request->getConfig()->get('retried')) {
                 if ($this->acquireAccessToken()) {
@@ -197,7 +197,7 @@ class Oauth2 implements SubscriberInterface
         $refresh = new RefreshToken($client, $config);
 
         try {
-            $accessToken        = $refreshGrantType->getToken($this->refreshToken);
+            $accessToken        = $refresh->getToken($this->refreshToken);
             $this->refreshToken = $accessToken->getRefreshToken();
 
             return $accessToken;

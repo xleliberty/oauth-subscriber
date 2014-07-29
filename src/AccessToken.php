@@ -40,11 +40,15 @@ class AccessToken
      * @param      $scope
      * @param null $refreshToken
      */
-    public function __construct($token, $expiresIn, $type, $scope, $refreshToken = null)
+    public function __construct($token, $expiresIn = null, $type = null, $scope = null, $refreshToken = null)
     {
         $this->token   = $token;
-        $this->expires = new \DateTime();
-        $this->expires->add(new \DateInterval(sprintf('PT%sS', $expiresIn)));
+
+        if (null !== $expiresIn) {
+            $this->expires = new \DateTime();
+            $this->expires->add(new \DateInterval(sprintf('PT%sS', $expiresIn)));
+        }
+
         $this->type         = $type;
         $this->scope        = $scope;
         $this->refreshToken = $refreshToken;
@@ -95,6 +99,10 @@ class AccessToken
      */
     public function isExpired()
     {
+        if (null === $this->expires) {
+            return false;
+        }
+
         $now = new \DateTime('now');
 
         return $now > $this->expires;
