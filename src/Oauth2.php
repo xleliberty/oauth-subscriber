@@ -9,17 +9,49 @@ use GuzzleHttp\Event\RequestEvents;
 use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Subscriber\Oauth\GrantType\GrantTypeInterface;
+use GuzzleHttp\Subscriber\Oauth\GrantType\RefreshToken;
+use GuzzleHttp\Exception\BadResponseException;
 
+/**
+ * Class Oauth2
+ * @package GuzzleHttp\Subscriber\Oauth
+ */
 class Oauth2 implements SubscriberInterface
 {
+    /**
+     * @var AccessToken
+     */
     private $accessToken;
+
+    /**
+     * @var GrantTypeInterface
+     */
     private $grantType;
 
-    public function __construct(GrantTypeInterface $grantType = null)
+    /**
+     * @var string
+     */
+    private $refreshToken;
+
+    /**
+     * @var boolean
+     */
+    private $useRefreshToken;
+
+
+    /**
+     * @param GrantTypeInterface $grantType
+     * @param boolean            $useRefreshToken
+     */
+    public function __construct(GrantTypeInterface $grantType = null, $useRefreshToken = false)
     {
-        $this->grantType = $grantType;
+        $this->grantType       = $grantType;
+        $this->useRefreshToken = $useRefreshToken;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function getEvents()
     {
         return [
@@ -28,6 +60,9 @@ class Oauth2 implements SubscriberInterface
         ];
     }
 
+    /**
+     * @param BeforeEvent $event
+     */
     public function onBefore(BeforeEvent $event)
     {
         $request = $event->getRequest();
@@ -43,6 +78,9 @@ class Oauth2 implements SubscriberInterface
         $request->setHeader('Authorization', $header);
     }
 
+    /**
+     * @param ErrorEvent $event
+     */
     public function onError(ErrorEvent $event)
     {
         if (401 == $event->getResponse()->getStatusCode()) {
@@ -69,11 +107,16 @@ class Oauth2 implements SubscriberInterface
 
     /**
      * Get access token
+     * if AccesToken is expired, we try to acquire a new one
      *
      * @return AccessToken Oauth2 access token
      */
     public function getAccessToken()
     {
+        if ($this->accessToken instanceof AccessToken && $this->accessToken->isExpired()) {
+            $this->accessToken = null;
+        }
+
         if (null === $this->accessToken) {
             $this->acquireAccessToken();
         }
@@ -81,6 +124,31 @@ class Oauth2 implements SubscriberInterface
         return $this->accessToken;
     }
 
+    /**
+     * @return string
+     */
+    public function getRefreshToken()
+    {
+        return $this->refreshToken;
+    }
+
+    /**
+     * @param string $refreshToken
+     *
+     * @return $this
+     */
+    public function setRefreshToken($refreshToken)
+    {
+        $this->refreshToken = $refreshToken;
+
+        return $this;
+    }
+
+
+    /**
+     * Set the authorization header
+     * @param RequestInterface $request
+     */
     private function setHeader(RequestInterface $request)
     {
         $token = $this->getAccessToken();
@@ -88,17 +156,55 @@ class Oauth2 implements SubscriberInterface
         $request->setHeader('Authorization', $header);
     }
 
+    /**
+     * @param AccessToken $token
+     *
+     * @return string
+     */
     private function getAuthorizationHeader(AccessToken $token)
     {
         return sprintf('Bearer %s', $token->getToken());
     }
 
+    /**
+     * @return AccessToken
+     */
     private function acquireAccessToken()
     {
-        if ($this->grantType) {
+        $this->accessToken = null;
+
+        if ($this->grantType && $this->useRefreshToken && $this->refreshToken) {
+            $this->accessToken = $this->acquireAccessTokenFromRefreshToken();
+        }
+
+        if ($this->grantType && null === $this->accessToken) {
             $this->accessToken = $this->grantType->getToken();
+            if ($this->useRefreshToken) {
+                $this->refreshToken = $this->accessToken->getRefreshToken();
+            }
         }
 
         return $this->accessToken;
+    }
+
+    /**
+     * @return mixed AccessToken|null
+     */
+    private function acquireAccessTokenFromRefreshToken()
+    {
+        $client  = $this->grantType->getClient();
+        $config  = $this->grantType->getConfig()->toArray();
+        $refresh = new RefreshToken($client, $config);
+
+        try {
+            $accessToken        = $refreshGrantType->getToken($this->refreshToken);
+            $this->refreshToken = $accessToken->getRefreshToken();
+
+            return $accessToken;
+
+        } catch (BadResponseException $e) {
+
+            return null;
+        }
     }
 }

@@ -7,10 +7,10 @@ use GuzzleHttp\Collection;
 use GuzzleHttp\Subscriber\Oauth\AccessToken;
 
 /**
- * Class ClientCredentials
+ * Class RefreshToken
  * @package GuzzleHttp\Subscriber\Oauth\GrantType
  */
-class ClientCredentials extends BaseGrantType implements GrantTypeInterface
+class RefreshToken extends BaseGrantType implements GrantTypeInterface
 {
     /**
      * @param ClientInterface $client
@@ -23,6 +23,7 @@ class ClientCredentials extends BaseGrantType implements GrantTypeInterface
             $config,
             [
                 'client_secret' => '',
+                'refresh_token' => '',
                 'scope'         => '',
             ],
             ['client_id']
@@ -30,22 +31,25 @@ class ClientCredentials extends BaseGrantType implements GrantTypeInterface
     }
 
     /**
+     * @param null $refreshToken
+     *
      * @return AccessToken
      */
-    public function getToken()
+    public function getToken($refreshToken = null)
     {
-        $body = $this->config->toArray();
-        $body['grant_type'] = 'client_credentials';
+        $body                  = $this->config->toArray();
+        $body['grant_type']    = 'refresh_token';
+        $body['refresh_token'] = $refreshToken ?: $this->config['refresh_token'];
+
         $response = $this->client->post(null, ['body' => $body]);
-        $data = $response->json();
-        $refresh_token = isset($data['refresh_token']) ? $data['refresh_token'] : null;
+        $data     = $response->json();
 
         return new AccessToken(
             $data['access_token'],
             $data['expires_in'],
             $data['token_type'],
             $data['scope'],
-            $refresh_token
+            $data['refresh_token']
         );
     }
 }

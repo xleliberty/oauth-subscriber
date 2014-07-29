@@ -15,4 +15,18 @@ interface GrantTypeInterface
      * @return AccessToken
      */
     public function getToken();
+
+    /**
+     * Get the guzzle client
+     *
+     * @return mixed
+     */
+    public function getClient();
+
+    /**
+     * get the config
+     *
+     * @return mixed
+     */
+    public function getConfig();
 }
