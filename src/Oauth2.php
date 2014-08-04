@@ -21,22 +21,22 @@ class Oauth2 implements SubscriberInterface
     /**
      * @var AccessToken
      */
-    private $accessToken;
+    protected  $accessToken;
 
     /**
      * @var GrantTypeInterface
      */
-    private $grantType;
+    protected  $grantType;
 
     /**
      * @var boolean
      */
-    private $useRefreshToken;
+    protected  $useRefreshToken;
 
     /**
      * @var string
      */
-    private $refreshToken;
+    protected  $refreshToken;
 
 
     /**
@@ -169,7 +169,7 @@ class Oauth2 implements SubscriberInterface
     /**
      * @return AccessToken
      */
-    private function acquireAccessToken()
+    protected function acquireAccessToken()
     {
         $this->accessToken = null;
 
@@ -190,7 +190,7 @@ class Oauth2 implements SubscriberInterface
     /**
      * @return mixed AccessToken|null
      */
-    private function acquireAccessTokenFromRefreshToken()
+    protected function acquireAccessTokenFromRefreshToken()
     {
         $client  = $this->grantType->getClient();
         $config  = $this->grantType->getConfig()->toArray();
